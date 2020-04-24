@@ -56,6 +56,12 @@ if (ENABLE_SENSEI)
       LibsimImageProperties.cxx)
     list(APPEND senseiCore_libs sLibsim)
   endif()
+  
+    if (ENABLE_VISTLE)
+    list(APPEND senseiCore_sources VistleAnalysisAdaptor.cxx
+      )
+    list(APPEND senseiCore_libs sVistle)
+  endif()
 
   if (ENABLE_VTK_IO)
     list(APPEND senseiCore_sources VTKPosthocIO.cxx)

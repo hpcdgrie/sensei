@@ -1,0 +1,87 @@
+ <!-- SENSEI ConfigurableAnalysis Configuration file.
+      set enabled="1" on analyses you wish to enable -->
+<sensei>
+  <!-- Custom Analyses-->
+  <analysis type="PosthocIO"
+    output_dir="./" file_name="output" mode="visit"
+    enabled="0">
+    <mesh name="mesh" structure_only="0" ghost_cells="1" ghost_nodes="0">
+      <cell_arrays>data</cell_arrays>
+    </mesh>
+  </analysis>
+
+  <analysis type="histogram" mesh="mesh" array="data" association="cell"
+    bins="10" enabled="0" />
+
+  <analysis type="autocorrelation" mesh="mesh" array="data" association="cell" window="10"
+    k-max="3" enabled="0" />
+
+  <!-- VTK-m Analyses -->
+  <analysis type="vtkmcontour" mesh="mesh" array="data" association="cell" value="0.3" enabled="0" write_output="0"/>
+
+  <!-- Catalyst Analyses -->
+  <analysis type="catalyst"
+            pipeline="slice" array="data" association="cell"
+            image-filename="slice-%ts.png" image-width="1920" image-height="1080"
+            slice-normal="0,0,1"
+            color-range="0.0001,1.5" color-log="1"
+            enabled="0" />
+
+  <!-- Libsim Analysis Notes
+    Locating VisIt:
+       * The "visitdir" attribute tells SENSEI where to find the VisIt
+         installation, which is required to pick up the Libsim runtime
+         libraries (when VisIt is not built statically)
+
+       * "visitdir" isn't needed if you set up PATH and LD_LIBRARY_PATH.
+
+    The "mode" attribute can be "batch", "interactive", or "interactive,paused."
+       * batch - Executes the analysis prescribed be the slice or session file.
+       * interactive - Lets VisIt connect interactively.
+       * interactive,paused - Lets VisIt connect interactively. Blocks until
+                              VisIt connects. From there, the "run" button
+                              in VisIt's Simulations window can let it proceed.
+
+    It is possible to have multiple Libsim analyses but for timings, it is best
+    to have them enabled one by one.
+
+    For debugging, additional attributes can be added to the analysis block:
+       options="-debug 5 -clobber_vlogs -timings" trace="trace"
+
+    -->
+  <!-- Libsim Slice, render -->
+  <analysis type="libsim"
+            frequency="1"
+            visitdir="/Users/bjw/Development/MAIN/trunk/release" mode="interactive,paused"
+            plots="Pseudocolor,Mesh" plotvars="ucdmesh/data,ucdmesh" slice-origin="0,0,0" slice-normal="0,0,1"
+            image-filename="slice%ts" image-width="800" image-height="800" image-format="png"
+            slice-origin="0,0,0" slice-normal="0,0,1" slice-project="1"
+            enabled="1"/>
+
+  <!-- Libsim Iso mesh, render -->
+  <analysis type="libsim"
+            frequency="1"
+            visitdir="/Users/bjw/Development/MAIN/trunk/release" mode="batch"
+            session="oscillator.session"
+            image-filename="iso%ts" image-width="800" image-height="800" image-format="png"
+            enabled="0"/>
+
+  <!-- Libsim Iso ucdmesh, render -->
+  <analysis type="libsim"
+            frequency="1"
+            visitdir="/Users/bjw/Development/MAIN/trunk/release" mode="batch"
+            session="oscillator-ucdmesh.session"
+            image-filename="iso-ucdmesh%ts" image-width="800" image-height="800" image-format="png"
+            enabled="0"/>
+
+  <!-- Libsim particles, render -->
+  <analysis type="libsim"
+            frequency="1"
+            visitdir="/Users/bjw/Development/MAIN/trunk/release" mode="batch"
+            session="oscillator-particles.session"
+            image-filename="particles%ts" image-width="800" image-height="800" image-format="png"
+            enabled="0"/>
+
+  <!-- ADIOS Analyses -->
+  <analysis type="adios1" filename="oscillators.bp" method="MPI" enabled="0" />
+</sensei>
