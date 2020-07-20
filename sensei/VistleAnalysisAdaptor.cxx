@@ -139,7 +139,7 @@ sensei::VistleAnalysisAdaptor::PrivateData::Initialize(DataAdaptor* data)
     }
     
     auto getDataFunc = std::bind(&VistleAnalysisAdaptor::PrivateData::getData, this, std::placeholders::_1);
-    m_vistleAdaptor = std::make_unique<vistle::insitu::sensei::SenseiAdapter>(i1, rank, size, std::move(meta), vistle::insitu::sensei::Callbacks{getDataFunc});
+    m_vistleAdaptor = std::make_unique<vistle::insitu::sensei::SenseiAdapter>(i1, Comm, std::move(meta), vistle::insitu::sensei::Callbacks{getDataFunc});
 
     initialized = true;
     return 0;
