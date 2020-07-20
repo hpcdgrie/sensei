@@ -54,6 +54,9 @@
 #include "LibsimAnalysisAdaptor.h"
 #include "LibsimImageProperties.h"
 #endif
+#ifdef ENABLE_VISTLE
+#include "VistleAnalysisAdaptor.h"
+#endif
 #ifdef ENABLE_PYTHON
 #include "PythonAnalysis.h"
 #endif
@@ -99,6 +102,7 @@ struct ConfigurableAnalysis::InternalsType
   int AddAscent(pugi::xml_node node);
   int AddCatalyst(pugi::xml_node node);
   int AddLibsim(pugi::xml_node node);
+  int AddVistle(pugi::xml_node node);
   int AddAutoCorrelation(pugi::xml_node node);
   int AddPosthocIO(pugi::xml_node node);
   int AddVTKAmrWriter(pugi::xml_node node);
@@ -115,6 +119,9 @@ public:
   // storing an additional pointer.
 #ifdef ENABLE_LIBSIM
   vtkSmartPointer<LibsimAnalysisAdaptor> LibsimAdaptor;
+#endif
+#ifdef ENABLE_VISTLE
+  vtkSmartPointer<VistleAnalysisAdaptor> VistleAdaptor;
 #endif
 #ifdef ENABLE_CATALYST
   vtkSmartPointer<CatalystAnalysisAdaptor> CatalystAdaptor;
@@ -795,6 +802,55 @@ int ConfigurableAnalysis::InternalsType::AddLibsim(pugi::xml_node node)
 }
 
 // --------------------------------------------------------------------------
+int ConfigurableAnalysis::InternalsType::AddVistle(pugi::xml_node node)
+{
+#ifndef ENABLE_VISTLE
+  (void)node;
+  SENSEI_ERROR("Vistle was requested but is disabled in this build")
+  return -1;
+#else
+
+  // We keep around a single instance of the libsim adaptor and then tell it to
+  // do different things.
+  if (!this->VistleAdaptor)
+    {
+    this->VistleAdaptor = vtkSmartPointer<VistleAnalysisAdaptor>::New();
+
+    if (this->Comm != MPI_COMM_NULL)
+      this->VistleAdaptor->SetCommunicator(this->Comm);
+
+    if(node.attribute("trace"))
+      this->VistleAdaptor->SetTraceFile(node.attribute("trace").value());
+
+    if(node.attribute("options"))
+      this->VistleAdaptor->SetOptions(node.attribute("options").value());
+
+
+    if(node.attribute("mode"))
+      this->VistleAdaptor->SetMode(node.attribute("mode").value());
+
+
+    this->TimeInitialization(this->VistleAdaptor, [&]()
+      {
+      //this->VistleAdaptor->Initialize();
+      return 0;
+      });
+
+    this->Analyses.push_back(this->VistleAdaptor);
+    }
+
+    int frequency = 5;
+  if(node.attribute("frequency") != NULL)
+    frequency = node.attribute("frequency").as_int();
+
+  if(frequency < 1)
+    frequency = 1;
+  this->VistleAdaptor->SetFrequency(frequency);
+#endif
+  return 0;
+}
+
+// --------------------------------------------------------------------------
 int ConfigurableAnalysis::InternalsType::AddAutoCorrelation(pugi::xml_node node)
 {
   if (XMLUtils::RequireAttribute(node, "mesh") || XMLUtils::RequireAttribute(node, "array"))
@@ -1185,6 +1241,7 @@ int ConfigurableAnalysis::Initialize(const pugi::xml_node &root)
       || ((type == "catalyst") && !this->Internals->AddCatalyst(node))
       || ((type == "hdf5") && !this->Internals->AddHDF5(node))
       || ((type == "libsim") && !this->Internals->AddLibsim(node))
+      || ((type == "vistle") && !this->Internals->AddVistle(node))
       || ((type == "PosthocIO") && !this->Internals->AddPosthocIO(node))
       || ((type == "VTKAmrWriter") && !this->Internals->AddVTKAmrWriter(node))
       || ((type == "vtkmcontour") && !this->Internals->AddVTKmContour(node))

@@ -44,6 +44,14 @@ cmake_dependent_option(ENABLE_LIBSIM
   "Enable analysis methods that use Libsim" OFF
   "ENABLE_SENSEI" OFF)
 
+cmake_dependent_option(ENABLE_VISTLE
+  "Enable analysis methods that use Vistle" OFF
+  "ENABLE_SENSEI" OFF)
+
+cmake_dependent_option(ENABLE_VTK_GENERIC_ARRAYS
+  "VTK build has Generic arrays" OFF
+  "ENABLE_SENSEI" OFF)
+
 cmake_dependent_option(ENABLE_VTK_IO
   "Enable use of vtk I/O" OFF
   "ENABLE_SENSEI" OFF)
@@ -92,6 +100,11 @@ message(STATUS "ENABLE_HDF5=${ENABLE_HDF5}")
 message(STATUS "ENABLE_CONDUIT=${ENABLE_CONDUIT}")
 message(STATUS "ENABLE_ASCENT=${ENABLE_ASCENT}")
 message(STATUS "ENABLE_LIBSIM=${ENABLE_LIBSIM}")
+<<<<<<< HEAD
+=======
+message(STATUS "ENABLE_VISTLE=${ENABLE_VISTLE}")
+message(STATUS "ENABLE_VTK_GENERIC_ARRAYS=${ENABLE_VTK_GENERIC_ARRAYS}")
+>>>>>>> 41a0b350 (Fix)
 message(STATUS "ENABLE_VTK_IO=${ENABLE_VTK_IO}")
 message(STATUS "ENABLE_VTK_MPI=${ENABLE_VTK_MPI}")
 message(STATUS "ENABLE_VTK_RENDERING=${ENABLE_VTK_RENDERING}")
