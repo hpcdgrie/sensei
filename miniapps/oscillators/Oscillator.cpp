@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <cmath>
 #include <algorithm>
-
+#include <functional>
 #include <sdiy/point.hpp>
 
 

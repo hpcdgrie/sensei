@@ -2,6 +2,8 @@
  
 #include <stdio.h>
 #include <stdlib.h>
+
+#define _USE_MATH_DEFINES
 #include <cmath>
 
 #include <sstream>

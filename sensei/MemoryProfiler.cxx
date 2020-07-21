@@ -44,7 +44,7 @@
 #include <vector>
 #include <deque>
 #include <sstream>
-#include <sys/time.h>
+
 #include <cstring>
 #include <errno.h>
 #include <iostream>
@@ -56,6 +56,7 @@
 
 // *****************************************************************************
 #if defined(__linux) || defined(__APPLE__)
+#include <sys/time.h>
 static
 int loadLines(FILE* file, std::vector<std::string>& lines)
 {
@@ -461,6 +462,11 @@ MemoryProfiler::InternalsType::GetHostMemoryTotal()
   stat.dw_length = sizeof(stat);
   global_memory_status(&stat);
   return stat.dw_total_phys / 1024;
+#elif defined(_MSC_VER) && _MSC_VER > 1300
+    MEMORYSTATUS stat;
+    stat.dwLength = sizeof(stat);
+    GlobalMemoryStatus(&stat);
+    return stat.dwTotalPhys / 1024;
 #else
   MEMORYSTATUSEX statex;
   statex.dw_length = sizeof(statex);
@@ -568,10 +574,15 @@ long long MemoryProfiler::InternalsType::GetHostMemoryUsed()
   stat.dw_length = sizeof(stat);
   global_memory_status(&stat);
   return (stat.dw_total_phys - stat.dw_avail_phys) / 1024;
+#elif defined(_MSC_VER) && _MSC_VER > 1300
+    MEMORYSTATUS stat;
+    stat.dwLength = sizeof(stat);
+    GlobalMemoryStatus(&stat);
+    return (stat.dwTotalPhys - stat.dwAvailPhys) / 1024;
 #else
   MEMORYSTATUSEX statex;
   statex.dw_length = sizeof(statex);
-  global_memory_status_ex(&statex);
+  GlobalMemoryStatusEx(&statex);
   return (statex.ull_total_phys - statex.ull_avail_phys) / 1024;
 #endif
 #elif defined(__linux)
@@ -693,7 +704,7 @@ int MemoryProfiler::InternalsType::InitializeWindowsMemory()
 #else
   MEMORYSTATUSEX ms;
   DWORDLONG tv, tp, av, ap;
-  ms.DwLength = sizeof(ms);
+  ms.dwLength = sizeof(ms);
   if (0 == GlobalMemoryStatusEx(&ms))
     return 0;
 

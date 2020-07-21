@@ -7,10 +7,14 @@ if (ENABLE_SENSEI)
     BinaryStream.cxx BlockPartitioner.cxx ConfigurableInTransitDataAdaptor.cxx
     ConfigurablePartitioner.cxx DataAdaptor.cxx DataRequirements.cxx Error.cxx
     Histogram.cxx InTransitAdaptorFactory.cxx InTransitDataAdaptor.cxx
-    IsoSurfacePartitioner.cxx MappedPartitioner.cxx MemoryProfiler.cxx
+    IsoSurfacePartitioner.cxx MappedPartitioner.cxx
     MeshMetadata.cxx MeshMetadataMap.cxx MPIManager.cxx PlanarPartitioner.cxx
     PlanarSlicePartitioner.cxx Profiler.cxx ProgrammableDataAdaptor.cxx
     VTKHistogram.cxx VTKDataAdaptor.cxx VTKUtils.cxx XMLUtils.cxx)
+
+    if(ENABLE_PROFILER)
+    list(APPEND senseiCore_sources MemoryProfiler.cxx)
+    endif()
 
   set(senseiCore_libs pugixml thread sDIY sVTK sMPI)
 
