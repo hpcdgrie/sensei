@@ -1,6 +1,8 @@
 set(sources vortex.cpp simulation_data.cpp patch.cpp)
-set(libs m sMPI)
-
+set(libs sMPI)
+if(NOT WIN32)
+list(APPEND libs m)
+endif()
 if (ENABLE_SENSEI)
   list(APPEND sources VortexDataAdaptor.cpp)
   list(APPEND libs sensei)

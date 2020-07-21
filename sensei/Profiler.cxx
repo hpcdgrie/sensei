@@ -1,7 +1,7 @@
 #include "Profiler.h"
 #include "MemoryProfiler.h"
 #include "Error.h"
-
+#if defined(ENABLE_PROFILER)
 #include <sys/time.h>
 #include <fstream>
 #include <cstdlib>
@@ -20,7 +20,7 @@
 #include <limits>
 #include <unordered_map>
 #include <mutex>
-
+#endif
 namespace impl
 {
 #if defined(ENABLE_PROFILER)

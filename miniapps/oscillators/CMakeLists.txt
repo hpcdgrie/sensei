@@ -35,6 +35,9 @@ endif ()
 
 target_include_directories(oscillator SYSTEM PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
+if(WIN32)
+target_compile_definitions(oscillator PRIVATE NOMINMAX)
+endif()
 install(TARGETS oscillator RUNTIME DESTINATION bin)
 
 add_subdirectory(testing)

@@ -1,7 +1,11 @@
 #include "Error.h"
 
 #include <mpi.h>
+#ifdef _WIN32
+#include <io.h>
+#elif
 #include <unistd.h>
+#endif
 #include <cstdio>
 #include <ostream>
 #include <sstream>
