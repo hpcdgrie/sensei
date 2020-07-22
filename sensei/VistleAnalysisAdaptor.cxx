@@ -69,7 +69,6 @@ private:
     std::string m_options;
     std::string m_tracefile;
     int m_frequency = 1;
-
     std::unique_ptr<SenseiAdapter> m_vistleAdaptor = nullptr;
     MPI_Comm Comm = MPI_COMM_WORLD;
     DataAdaptor *m_senseiAdaptor = nullptr;
@@ -79,14 +78,15 @@ private:
     std::vector<Callbacks::OutputData> getData(const MetaData& meta);
     struct VtkAndVistleMesh{
         vtkCompositeDataSetPtr vtkMesh = nullptr;
-        std::vector<vistle::Object::const_ptr> vistleMeshes;
+        std::vector<vistle::Object::ptr> vistleMeshes;
         operator bool() const; 
  
     };
     std::map<std::string, VtkAndVistleMesh> m_cachedMeshes;
     std::map<std::string, MeshMetadataPtr> m_senseiMetaData;
 
-    bool getMesh(const std::string &name, vtkDataObjectPtr &dobjp);
+    bool getMesh(const std::string& meshName, const MeshMetadataPtr meta, VtkAndVistleMesh& mesh);
+    bool getVariable(std::vector<Callbacks::OutputData>& output, const std::string& varName, const std::string& meshNAme, const VtkAndVistleMesh& mesh, const MeshMetadataPtr meshMeta);
     VtkAndVistleMesh getMeshFromSim(const std::string &name, const MeshMetadataPtr &meshMeta);
     bool addGhostCells(const std::string &meshName, const MeshMetadataPtr meshMeta, vtkDataObjectPtr vtkObject);
 };
@@ -199,7 +199,6 @@ std::vector<Callbacks::OutputData> sensei::VistleAnalysisAdaptor::PrivateData::g
     std::vector<Callbacks::OutputData> outputData;
     for(const auto &meshIter : meta)
     {
-
         const std::string &meshName = meshIter.first;
 
         // get the metadata, it should already be available
@@ -210,65 +209,18 @@ std::vector<Callbacks::OutputData> sensei::VistleAnalysisAdaptor::PrivateData::g
             continue;
         }
         MeshMetadataPtr meshMeta = mdit->second;
-
         VtkAndVistleMesh mesh;
-        auto cachedMeshPair = m_cachedMeshes.find(meshName);
-        if(cachedMeshPair != m_cachedMeshes.end())
-        {
-            mesh = cachedMeshPair->second;
+        if (!getMesh(meshName, meshMeta, mesh))
+            continue;
 
-        }else{
-            mesh = getMeshFromSim(meshName, meshMeta);
-
-        }   
-        if(!mesh)
-        {
-            SENSEI_ERROR("Failed to get mesh \"" << meshName << "\"from sim")
-        }
         for(const auto & subMesh : mesh.vistleMeshes)
         {
             outputData.push_back(Callbacks::OutputData{meshName, subMesh});
         }
         
-        for(const auto & var : meshIter.second)
+        for(const auto & varName : meshIter.second)
         {
-
-            vtkCompositeDataIterator* dataSetIter = mesh.vtkMesh->NewIterator();
-            // VTK's iterators for AMR datasets behave differently than for multiblock
-            // datasets.  we are going to have to handle AMR data as a special case for
-            // now.
-
-            vtkUniformGridAMRDataIterator *amrIt = dynamic_cast<vtkUniformGridAMRDataIterator*>(dataSetIter);
-            vtkOverlappingAMR *amrMesh = dynamic_cast<vtkOverlappingAMR*>(mesh.vtkMesh.Get());
-            size_t index = 0;
-            for (dataSetIter->InitTraversal(); !dataSetIter->IsDoneWithTraversal(); dataSetIter->GoToNextItem())
-            {
-                long blockId = 0;
-                if (amrIt)
-                {
-                    // special case for AMR
-                    int level = amrIt->GetCurrentLevel();
-                    int index = amrIt->GetCurrentIndex();
-                    blockId = amrMesh->GetAMRBlockSourceIndex(level, index);
-                }
-                else
-                {
-                    // other composite data
-                    blockId = dataSetIter->GetCurrentFlatIndex() - 1;
-                }
-                auto centering = meshMeta->ArrayCentering[index];
-                vtkDataArray* array = dataSetIter->GetCurrentDataObject()->GetAttributes(centering)->GetArray(var.c_str());
-                auto vistleArray = vistle::vtk::vtkData2Vistle(*m_vistleAdaptor, array, mesh.vistleMeshes[index]);
-                vistleArray->setTimestep(m_senseiAdaptor->GetDataTimeStep());
-                vistleArray->setBlock(blockId);
-                outputData.push_back(Callbacks::OutputData{var, vistleArray});
-                ++index;
-            }
-
-            dataSetIter->Delete();
-
-
-
+           getVariable(outputData, varName, meshName, mesh, meshMeta);
         }
     }
     return outputData;
@@ -278,11 +230,15 @@ VistleAnalysisAdaptor::PrivateData::VtkAndVistleMesh VistleAnalysisAdaptor::Priv
 {
 
     vtkDataObjectPtr vtkObject = nullptr;
-    if (this->getMesh(name, vtkObject))
+
+    vtkDataObject* dobj = nullptr;
+    if (this->m_senseiAdaptor->GetMesh(name, false, dobj))
     {
         SENSEI_ERROR("Failed to get mesh \"" << name << "\"")
         return VtkAndVistleMesh();
     }
+    vtkObject.TakeReference(dobj);
+
     if(addGhostCells(name , meshMeta, vtkObject))
         return VtkAndVistleMesh();
     VtkAndVistleMesh vtkAndVistleMesh;
@@ -318,7 +274,6 @@ VistleAnalysisAdaptor::PrivateData::VtkAndVistleMesh VistleAnalysisAdaptor::Priv
         vtkDataObject* vtkMesh = dataSetIter->GetCurrentDataObject();
         auto vistleMesh = vistle::vtk::toGrid(*m_vistleAdaptor, vtkMesh);
         vistleMesh->setBlock(blockId);
-        vistleMesh->setTimestep(m_senseiAdaptor->GetDataTimeStep());
         vtkAndVistleMesh.vistleMeshes.push_back(vistleMesh);
     }
     dataSetIter->Delete();
@@ -347,23 +302,100 @@ bool VistleAnalysisAdaptor::PrivateData::addGhostCells(const std::string &meshNa
     return 0;
 }
 
-bool VistleAnalysisAdaptor::PrivateData::getMesh(const std::string &meshName, vtkDataObjectPtr &dobjp){
-    auto it = m_cachedMeshes.find(meshName);
-    if(it != m_cachedMeshes.end())
+bool VistleAnalysisAdaptor::PrivateData::getMesh(const std::string& meshName, const MeshMetadataPtr meta, VtkAndVistleMesh& mesh) {
+    auto cachedMeshPair = m_cachedMeshes.find(meshName);
+    if (cachedMeshPair != m_cachedMeshes.end())
     {
-        dobjp = it->second.vtkMesh;
-        return 0;
+        mesh = cachedMeshPair->second;
+
     }
-    vtkDataObject *dobj = nullptr;
-    if (this->m_senseiAdaptor->GetMesh(meshName, false, dobj))
+    else {
+        mesh = getMeshFromSim(meshName, meta);
+    }
+    if (!mesh)
     {
-        SENSEI_ERROR("Failed to get mesh \"" << meshName << "\"")
-        return -1;
+        SENSEI_ERROR("Failed to get mesh \"" << meshName << "\"from sim")
+            return false;
     }
-    dobjp.TakeReference(dobj);
-    return 0;
+    return true;
 }
 
+bool VistleAnalysisAdaptor::PrivateData::getVariable(std::vector<Callbacks::OutputData> &output, const std::string& varName, const std::string& meshName, const VtkAndVistleMesh& mesh, const MeshMetadataPtr meshMeta)
+{
+    auto centeringPosIt = std::find(meshMeta->ArrayName.begin(), meshMeta->ArrayName.end(), varName);
+    if (centeringPosIt == meshMeta->ArrayName.end())
+    {
+        SENSEI_ERROR("Failed to get metadata for array \"" << varName << "\"")
+        return false;
+    }
+    size_t centeringPos = centeringPosIt - meshMeta->ArrayName.begin();
+    auto centering = meshMeta->ArrayCentering[centeringPos];
+
+    vtkCompositeDataIterator* dataSetIter = mesh.vtkMesh->NewIterator();
+
+
+    // this rank has no local data
+    if (dataSetIter->IsDoneWithTraversal())
+    {
+        dataSetIter->Delete();
+        return false;
+    }
+
+    // read the array if we have not yet
+    if (!dataSetIter->GetCurrentDataObject()->GetAttributes(centering)->GetArray(varName.c_str()))
+    {
+        if (this->m_senseiAdaptor->AddArray(mesh.vtkMesh.GetPointer(), meshName, centering, varName))
+        {
+            SENSEI_ERROR("Failed to add " << VTKUtils::GetAttributesName(centering)
+                << " data array \"" << varName << "\"")
+            dataSetIter->Delete();
+            return false;
+        }
+    }
+
+
+    // VTK's iterators for AMR datasets behave differently than for multiblock
+    // datasets.  we are going to have to handle AMR data as a special case for
+    // now.
+
+    vtkUniformGridAMRDataIterator* amrIt = dynamic_cast<vtkUniformGridAMRDataIterator*>(dataSetIter);
+    vtkOverlappingAMR* amrMesh = dynamic_cast<vtkOverlappingAMR*>(mesh.vtkMesh.Get());
+    size_t index = 0;
+    for (dataSetIter->InitTraversal(); !dataSetIter->IsDoneWithTraversal(); dataSetIter->GoToNextItem())
+    {
+        long blockId = 0;
+        if (amrIt)
+        {
+            // special case for AMR
+            int level = amrIt->GetCurrentLevel();
+            int index = amrIt->GetCurrentIndex();
+            blockId = amrMesh->GetAMRBlockSourceIndex(level, index);
+        }
+        else
+        {
+            // other composite data
+            blockId = dataSetIter->GetCurrentFlatIndex() - 1;
+        }
+
+        auto currentObj = dataSetIter->GetCurrentDataObject();
+        auto currentAttributes = currentObj->GetAttributes(centering);
+        vtkDataArray* array = currentAttributes->GetArray(varName.c_str());
+        if (!array)
+        {
+            SENSEI_ERROR("Failed to get array \"" << varName << "\"");
+            ++index;
+            continue;
+        }
+        auto vistleArray = vistle::vtk::vtkData2Vistle(*m_vistleAdaptor, array, mesh.vistleMeshes[index]);
+        vistleArray->setBlock(blockId);
+        vistleArray->addAttribute("_species", varName);
+        output.push_back(Callbacks::OutputData{ meshName, varName, vistleArray });
+        ++index;
+    }
+
+    dataSetIter->Delete();
+    return true;
+}
 
 //-----------------------------------------------------------------------------
 // LibsimAnalysisAdaptor PUBLIC INTERFACE
