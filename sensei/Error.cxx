@@ -3,7 +3,7 @@
 #include <mpi.h>
 #ifdef _WIN32
 #include <io.h>
-#elif
+#else
 #include <unistd.h>
 #endif
 #include <cstdio>

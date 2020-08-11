@@ -40,7 +40,7 @@
 #include <mpi.h>
 
 #include <vistle/insitu/sensei/sensei.h>
-#include <vistle/vtk/vtkToVistle.h>
+#include <vistle/vtk/vtktovistle.h>
 
 #define CERR std::cerr
 using std::endl;
