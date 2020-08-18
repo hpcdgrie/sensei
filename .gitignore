@@ -1,3 +1,6 @@
 *.sw[a-z]
 doc/build-tmp/
 node_modules/
+build
+build-*
+.vscode
