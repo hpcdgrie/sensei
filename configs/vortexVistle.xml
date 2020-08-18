@@ -1,0 +1,9 @@
+<sensei>
+  
+  <analysis type="vistle"
+            frequency="1"
+            session="vortex_slice.session"
+            mode="interactive,paused"
+            enabled="1"
+            />
+</sensei>

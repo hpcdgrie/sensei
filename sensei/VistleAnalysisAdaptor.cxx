@@ -36,6 +36,7 @@
 #include <sstream>
 #include <algorithm>
 #include <map>
+#include <memory>
 
 #include <mpi.h>
 
@@ -139,7 +140,7 @@ sensei::VistleAnalysisAdaptor::PrivateData::Initialize(DataAdaptor* data)
     }
     
     auto getDataFunc = std::bind(&VistleAnalysisAdaptor::PrivateData::getData, this, std::placeholders::_1);
-    m_vistleAdaptor = std::make_unique<vistle::insitu::sensei::SenseiAdapter>(i1, Comm, std::move(meta), vistle::insitu::sensei::Callbacks{getDataFunc});
+    m_vistleAdaptor = std::unique_ptr<vistle::insitu::sensei::SenseiAdapter>(new vistle::insitu::sensei::SenseiAdapter(i1, Comm, std::move(meta), vistle::insitu::sensei::Callbacks{getDataFunc}));
 
     initialized = true;
     return 0;
@@ -162,7 +163,11 @@ sensei::VistleAnalysisAdaptor::PrivateData::Execute(sensei::DataAdaptor *DataAda
 }
 
 int sensei::VistleAnalysisAdaptor::PrivateData::Finalize(){
-    return 1;
+    if(m_vistleAdaptor)
+    {
+        return !m_vistleAdaptor->Finalize();
+    }
+    return false;
 }
 
 void sensei::VistleAnalysisAdaptor::PrivateData::SetTraceFile(const std::string &traceFile)
