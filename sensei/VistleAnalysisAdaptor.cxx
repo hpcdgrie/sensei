@@ -88,6 +88,7 @@ private:
 
     bool getMesh(const std::string& meshName, const MeshMetadataPtr meta, VtkAndVistleMesh& mesh);
     bool getVariable(std::vector<Callbacks::OutputData>& output, const std::string& varName, const std::string& meshNAme, const VtkAndVistleMesh& mesh, const MeshMetadataPtr meshMeta);
+    size_t getBlockIndex(vtkCompositeDataIterator *iter, vtkCompositeDataSet *mesh);
     VtkAndVistleMesh getMeshFromSim(const std::string &name, const MeshMetadataPtr &meshMeta);
     bool addGhostCells(const std::string &meshName, const MeshMetadataPtr meshMeta, vtkDataObjectPtr vtkObject);
 };
@@ -256,29 +257,21 @@ VistleAnalysisAdaptor::PrivateData::VtkAndVistleMesh VistleAnalysisAdaptor::Priv
     // VTK's iterators for AMR datasets behave differently than for multiblock
     // datasets.  we are going to have to handle AMR data as a special case for
     // now.
-
-    vtkUniformGridAMRDataIterator *amrIt = dynamic_cast<vtkUniformGridAMRDataIterator*>(dataSetIter);
-    vtkOverlappingAMR *amrMesh = dynamic_cast<vtkOverlappingAMR*>(vtkSet.Get());
+    vtkUniformGridAMRDataIterator *amrIt = dynamic_cast<vtkUniformGridAMRDataIterator *>(dataSetIter);
+    vtkOverlappingAMR *amrMesh = dynamic_cast<vtkOverlappingAMR *>(vtkSet.Get());
 
     for(dataSetIter->InitTraversal(); !dataSetIter->IsDoneWithTraversal(); dataSetIter->GoToNextItem())
     {
-        long blockId = 0;
-        if (amrIt)
-        {
-            // special case for AMR
-            int level = amrIt->GetCurrentLevel();
-            int index = amrIt->GetCurrentIndex();
-            blockId = amrMesh->GetAMRBlockSourceIndex(level, index);
-        }
-        else
-        {
-            // other composite data
-            blockId = dataSetIter->GetCurrentFlatIndex() - 1;
-        }
-
+        long blockId = getBlockIndex(dataSetIter, vtkSet.Get());
         vtkDataObject* vtkMesh = dataSetIter->GetCurrentDataObject();
         auto vistleMesh = vistle::vtk::toGrid(*m_vistleAdaptor, vtkMesh);
         vistleMesh->setBlock(blockId);
+        
+        if (amrIt)
+        {
+            vistleMesh->addAttribute("POLYGON_OFFSET", std::to_string((amrMesh->GetNumberOfLevels() - amrIt->GetCurrentLevel())));
+        }
+
         vtkAndVistleMesh.vistleMeshes.push_back(vistleMesh);
     }
     dataSetIter->Delete();
@@ -363,25 +356,11 @@ bool VistleAnalysisAdaptor::PrivateData::getVariable(std::vector<Callbacks::Outp
     // datasets.  we are going to have to handle AMR data as a special case for
     // now.
 
-    vtkUniformGridAMRDataIterator* amrIt = dynamic_cast<vtkUniformGridAMRDataIterator*>(dataSetIter);
-    vtkOverlappingAMR* amrMesh = dynamic_cast<vtkOverlappingAMR*>(mesh.vtkMesh.Get());
+
     size_t index = 0;
     for (dataSetIter->InitTraversal(); !dataSetIter->IsDoneWithTraversal(); dataSetIter->GoToNextItem())
     {
-        long blockId = 0;
-        if (amrIt)
-        {
-            // special case for AMR
-            int level = amrIt->GetCurrentLevel();
-            int index = amrIt->GetCurrentIndex();
-            blockId = amrMesh->GetAMRBlockSourceIndex(level, index);
-        }
-        else
-        {
-            // other composite data
-            blockId = dataSetIter->GetCurrentFlatIndex() - 1;
-        }
-
+        long blockId = getBlockIndex(dataSetIter, mesh.vtkMesh.Get());
         auto currentObj = dataSetIter->GetCurrentDataObject();
         auto currentAttributes = currentObj->GetAttributes(centering);
         vtkDataArray* array = currentAttributes->GetArray(varName.c_str());
@@ -392,6 +371,12 @@ bool VistleAnalysisAdaptor::PrivateData::getVariable(std::vector<Callbacks::Outp
             continue;
         }
         auto vistleArray = vistle::vtk::vtkData2Vistle(*m_vistleAdaptor, array, mesh.vistleMeshes[index]);
+        if (!vistleArray)
+        {
+            CERR << "Failed to convert vtk data array of type " << array->GetDataType() << " to vistle" << endl;
+            continue;
+        }
+
         vistleArray->setBlock(blockId);
         vistleArray->addAttribute("_species", varName);
         output.push_back(Callbacks::OutputData{ meshName, varName, vistleArray });
@@ -402,10 +387,30 @@ bool VistleAnalysisAdaptor::PrivateData::getVariable(std::vector<Callbacks::Outp
     return true;
 }
 
-//-----------------------------------------------------------------------------
-// LibsimAnalysisAdaptor PUBLIC INTERFACE
-//-----------------------------------------------------------------------------
-senseiNewMacro(VistleAnalysisAdaptor);
+size_t VistleAnalysisAdaptor::PrivateData::getBlockIndex(vtkCompositeDataIterator* iter, vtkCompositeDataSet* mesh){
+    
+    vtkUniformGridAMRDataIterator *amrIt = dynamic_cast<vtkUniformGridAMRDataIterator *>(iter);
+    if (amrIt)
+    {
+        //return 0; //GetAMRBlockSourceIndex causes segmentation fault if the sim did not call SetAMRBlockSourceIndex
+        // special case for AMR
+        int level = amrIt->GetCurrentLevel();
+        int index = amrIt->GetCurrentIndex();
+        vtkOverlappingAMR *amrMesh = dynamic_cast<vtkOverlappingAMR *>(mesh);
+
+        return amrMesh->GetAMRBlockSourceIndex(level, index);
+    }
+    else
+    {
+        // other composite data
+        return iter->GetCurrentFlatIndex() - 1;
+    }
+}
+
+    //-----------------------------------------------------------------------------
+    // LibsimAnalysisAdaptor PUBLIC INTERFACE
+    //-----------------------------------------------------------------------------
+    senseiNewMacro(VistleAnalysisAdaptor);
 
 sensei::VistleAnalysisAdaptor::VistleAnalysisAdaptor(){
     m_internals = new VistleAnalysisAdaptor::PrivateData{};
