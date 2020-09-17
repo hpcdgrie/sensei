@@ -116,7 +116,7 @@ sensei::VistleAnalysisAdaptor::PrivateData::Initialize(DataAdaptor* data)
     //bool i0 = m_mode == "interactive";
     bool i1 = m_mode == "interactive,paused";
 
-    vistle::insitu::sensei::MetaData meta;
+    vistle::insitu::sensei::MetaData vistleMeta;
     unsigned int numMeshes;
     if(data->GetNumberOfMeshes(numMeshes))
     {
@@ -131,17 +131,16 @@ sensei::VistleAnalysisAdaptor::PrivateData::Initialize(DataAdaptor* data)
             SENSEI_ERROR("Failed to get meshe meta data")
             return -1;
         }
-        m_senseiMetaData[meshMeta->MeshName] = meshMeta;
-        meta.addMesh(meshMeta->MeshName);
+        vistle::insitu::sensei::MetaMesh vistleMeshMeta(meshMeta->MeshName);
         for(auto var : meshMeta->ArrayName)
         {
-            meta.addVariable(var, meshMeta->MeshName);
+            vistleMeshMeta.addVar(var);
         }
-        
+        vistleMeta.addMesh(vistleMeshMeta);
     }
     
     auto getDataFunc = std::bind(&VistleAnalysisAdaptor::PrivateData::getData, this, std::placeholders::_1);
-    m_vistleAdaptor = std::unique_ptr<vistle::insitu::sensei::SenseiAdapter>(new vistle::insitu::sensei::SenseiAdapter(i1, Comm, std::move(meta), vistle::insitu::sensei::Callbacks{getDataFunc}));
+    m_vistleAdaptor = std::unique_ptr<vistle::insitu::sensei::SenseiAdapter>(new vistle::insitu::sensei::SenseiAdapter(i1, Comm, std::move(vistleMeta), vistle::insitu::sensei::Callbacks{getDataFunc}));
 
     initialized = true;
     return 0;
@@ -205,7 +204,7 @@ std::vector<Callbacks::OutputData> sensei::VistleAnalysisAdaptor::PrivateData::g
     std::vector<Callbacks::OutputData> outputData;
     for(const auto &meshIter : meta)
     {
-        const std::string &meshName = meshIter.first;
+        const std::string &meshName = meshIter.name();
 
         // get the metadata, it should already be available
         auto mdit = this->m_senseiMetaData.find(meshName);
@@ -219,12 +218,12 @@ std::vector<Callbacks::OutputData> sensei::VistleAnalysisAdaptor::PrivateData::g
         if (!getMesh(meshName, meshMeta, mesh))
             continue;
 
-        for(const auto & subMesh : mesh.vistleMeshes)
+        for(const auto &subMesh : mesh.vistleMeshes)
         {
             outputData.push_back(Callbacks::OutputData{meshName, subMesh});
         }
         
-        for(const auto & varName : meshIter.second)
+        for(const auto & varName : meshIter)
         {
            getVariable(outputData, varName, meshName, mesh, meshMeta);
         }
