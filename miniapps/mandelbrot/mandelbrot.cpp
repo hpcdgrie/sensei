@@ -570,8 +570,8 @@ int main(int argc, char **argv)
     int max_iter = 100;
     std::string config_file("mandelbrot.xml");
     simulation_data sim;
-    int nx = 32;
-    int ny = 32;
+    int nx = 128;
+    int ny = 64;
 
     // Initialize MPI
     MPI_Init(&argc, &argv);
@@ -628,7 +628,7 @@ int main(int argc, char **argv)
         window[1] = (1.f - t)*window0[1] + t*window1[1];
         window[2] = (1.f - t)*window0[2] + t*window1[2];
         window[3] = (1.f - t)*window0[3] + t*window1[3];
-
+        
         if(sim.par_rank == 0)
         {
             std::cerr << "Simulating time step: cycle=" << sim.cycle
