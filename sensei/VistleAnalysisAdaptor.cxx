@@ -332,7 +332,7 @@ namespace sensei
         }
         if (!mesh)
         {
-            SENSEI_ERROR("Failed to get mesh \"" << meshName << "\"from sim")
+            SENSEI_ERROR("Failed to get mesh \"" << meshName << "\" from sim")
             return false;
         }
         return true;
