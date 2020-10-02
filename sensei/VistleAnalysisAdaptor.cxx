@@ -287,8 +287,8 @@ namespace sensei
                 SENSEI_ERROR("Failed to add ghost nodes to mesh \"" << meshName << "\"")
                 return -1;
             }
-            return 0;
         }
+        return 0;
     }
 
     VistleAnalysisAdaptor::PrivateData::VtkAndVistleMesh VistleAnalysisAdaptor::PrivateData::createVistleMesh(const vtkDataObjectPtr vtkObject)
