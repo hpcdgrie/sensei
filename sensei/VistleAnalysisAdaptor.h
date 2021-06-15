@@ -35,7 +35,7 @@ class VistleAnalysisAdaptor : public AnalysisAdaptor
     int Finalize() override;
 
 
-    // Set some Libsim startup options.
+    // Set some Vistle startup options.
     void SetTraceFile(const std::string &traceFile);
     void SetOptions(const std::string &options);
     void SetMode(const std::string &mode);
