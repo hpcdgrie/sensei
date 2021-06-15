@@ -118,7 +118,7 @@ namespace sensei
 
             auto getDataFunc = std::bind(&VistleAnalysisAdaptor::PrivateData::getData, this, std::placeholders::_1);
             bool pause = m_mode == "interactive,paused";
-            m_vistleAdaptor = std::unique_ptr<SenseiAdapter>(new SenseiAdapter(pause, m_comm, std::move(vistleMeta), ObjectRetriever{getDataFunc}));
+            m_vistleAdaptor = std::unique_ptr<SenseiAdapter>(new SenseiAdapter(pause, m_comm, std::move(vistleMeta), ObjectRetriever{getDataFunc}, m_options));
 
             m_initialized = true;
             return 0;

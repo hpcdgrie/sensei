@@ -5,5 +5,6 @@
   <analysis type="vistle"
             frequency="1"
             mode="interactive,paused"
-            enabled="1"/>
+            enabled="1"
+            options="-c localhost:31095"/>
 </sensei>
