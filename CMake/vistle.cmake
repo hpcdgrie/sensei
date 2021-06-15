@@ -1,7 +1,9 @@
 if(ENABLE_VISTLE)
-  find_package(vistle_sensei REQUIRED)
-  find_package(vistle_sensei_vtk REQUIRED)
-  find_package(vistle_boost_mpi REQUIRED)
+find_package(Vistle REQUIRED COMPONENTS sensei sensei_vtk boost_mpi
+)
+  #find_package(vistle_sensei REQUIRED)
+  #find_package(vistle_sensei_vtk REQUIRED)
+  #find_package(vistle_boost_mpi REQUIRED)
   add_library(sVistle INTERFACE)
   target_link_libraries(sVistle
     INTERFACE
