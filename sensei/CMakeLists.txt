@@ -6,8 +6,8 @@ if (ENABLE_SENSEI)
   set(senseiCore_sources AnalysisAdaptor.cxx Autocorrelation.cxx
     BinaryStream.cxx BlockPartitioner.cxx ConfigurableInTransitDataAdaptor.cxx
     ConfigurablePartitioner.cxx DataAdaptor.cxx DataRequirements.cxx Error.cxx
-    Histogram.cxx InTransitAdaptorFactory.cxx InTransitDataAdaptor.cxx
-    IsoSurfacePartitioner.cxx MappedPartitioner.cxx
+    Histogram.cxx HistogramInternals.cxx InTransitAdaptorFactory.cxx InTransitDataAdaptor.cxx
+    IsoSurfacePartitioner.cxx MappedPartitioner.cxx MemoryProfiler.cxx MemoryUtils.cxx
     MeshMetadata.cxx MeshMetadataMap.cxx MPIManager.cxx PlanarPartitioner.cxx
     PlanarSlicePartitioner.cxx Profiler.cxx ProgrammableDataAdaptor.cxx
     VTKDataAdaptor.cxx VTKUtils.cxx XMLUtils.cxx)
