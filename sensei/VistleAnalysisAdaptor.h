@@ -40,6 +40,8 @@ class VistleAnalysisAdaptor : public AnalysisAdaptor
     void SetOptions(const std::string &options);
     void SetMode(const std::string &mode);
     void SetFrequency(int f);
+    int SetCommunicator(MPI_Comm comm) override;
+
   protected:
     VistleAnalysisAdaptor();
     ~VistleAnalysisAdaptor();

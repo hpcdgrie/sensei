@@ -53,8 +53,8 @@ namespace sensei
     class VistleAnalysisAdaptor::PrivateData
     {
     public:
-        bool Initialize(DataAdaptor *data);
-        bool Execute(DataAdaptor *data);
+        bool Initialize(DataAdaptor *data, MPI_Comm comm);
+        bool Execute(DataAdaptor *data, MPI_Comm comm);
         int Finalize();
 
         // Set some Libsim startup options.
@@ -62,6 +62,7 @@ namespace sensei
         void SetOptions(const std::string &options);
         void SetMode(const std::string &mode);
         void SetFrequency(int f);
+        void SetCommunicator(MPI_Comm comm);
 
     private:
         std::string m_mode;
@@ -69,7 +70,7 @@ namespace sensei
         std::string m_tracefile;
         int m_frequency = 1;
         std::unique_ptr<SenseiAdapter> m_vistleAdaptor = nullptr;
-        MPI_Comm m_comm = MPI_COMM_WORLD;
+        MPI_Comm m_comm;
         DataAdaptor *m_senseiAdaptor = nullptr;
         bool m_initialized = false;
         std::vector<MeshMetadataPtr> m_mehsMetaData;
@@ -102,11 +103,11 @@ namespace sensei
     }
 
     bool
-    sensei::VistleAnalysisAdaptor::PrivateData::Initialize(DataAdaptor *data)
+    sensei::VistleAnalysisAdaptor::PrivateData::Initialize(DataAdaptor *data, MPI_Comm comm)
     {
         if (m_initialized)
             return 0;
-
+        m_comm = comm;
         TimeEvent<128> mark("vistle::initialize");
 #ifdef VISTLE_DEBUG_LOG
         CERR << "SENSEI: VistleAnalysisAdaptor::Initialize" << endl;
@@ -127,11 +128,11 @@ namespace sensei
         return 1;
     }
 
-    bool sensei::VistleAnalysisAdaptor::PrivateData::Execute(sensei::DataAdaptor *DataAdaptor)
+    bool sensei::VistleAnalysisAdaptor::PrivateData::Execute(sensei::DataAdaptor *DataAdaptor, MPI_Comm comm)
     {
         if (!m_initialized)
         {
-            Initialize(DataAdaptor);
+            Initialize(DataAdaptor, comm);
         }
         // Keep a pointer to the data adaptor so the callbacks can access it.
         m_senseiAdaptor = DataAdaptor;
@@ -166,6 +167,12 @@ namespace sensei
     {
         m_frequency = f;
     }
+
+    void sensei::VistleAnalysisAdaptor::PrivateData::SetCommunicator(MPI_Comm comm)
+    {
+        m_comm = comm;
+    }
+
     // private -------------------------------------------------------------------------
 
     bool sensei::VistleAnalysisAdaptor::PrivateData::chacheMetaData(DataAdaptor *data)
@@ -443,7 +450,7 @@ namespace sensei
     bool
     sensei::VistleAnalysisAdaptor::Execute(sensei::DataAdaptor *DataAdaptor)
     {
-        return m_internals->Execute(DataAdaptor);
+        return m_internals->Execute(DataAdaptor, Comm);
     }
 
     int sensei::VistleAnalysisAdaptor::Finalize()
@@ -469,6 +476,14 @@ namespace sensei
     void sensei::VistleAnalysisAdaptor::SetFrequency(int f)
     {
         m_internals->SetFrequency(f);
+    }
+
+    int sensei::VistleAnalysisAdaptor::SetCommunicator(MPI_Comm comm)
+    {
+        MPI_Comm_free(&this->Comm);
+        MPI_Comm_dup(comm, &this->Comm);
+        m_internals->SetCommunicator(comm);
+        return 0;
     }
 
     // --------------------------------------------------------------------------
