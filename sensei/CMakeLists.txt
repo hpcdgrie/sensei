@@ -74,7 +74,7 @@ if (ENABLE_ADIOS2)
 
 if (ENABLE_VISTLE)
   list(APPEND senseiCore_sources VistleAnalysisAdaptor.cxx)
-  list(APPEND senseiCore_libs sVistle)
+  
 endif()
 
   if (ENABLE_VTK_IO)
@@ -88,7 +88,10 @@ endif()
   endif()
 
   add_library(senseiCore ${senseiCore_sources} ${senseiCore_cuda_sources})
-
+  if (ENABLE_VISTLE)
+    target_link_libraries(senseiCore PRIVATE sVistle)
+    
+  endif()
   if (ENABLE_CUDA)
     sensei_cuda_target(TARGET senseiCore SOURCES ${senseiCore_cuda_sources})
   endif ()
