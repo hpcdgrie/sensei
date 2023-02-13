@@ -8,7 +8,10 @@ if(ENABLE_VISTLE)
   )
   get_target_property(vistle_boost_mpi_includes Vistle::vistle_boost_mpi INTERFACE_INCLUDE_DIRECTORIES) 
   target_include_directories(sVistle INTERFACE ${vistle_boost_mpi_includes})      
-  target_compile_definitions(sVistle INTERFACE VISTLE_ROOT="${Vistle_DIR}/../../..")
+  target_compile_definitions(sVistle INTERFACE VISTLE_ROOT="${Vistle_DIR}/../../.."
+                                               VISTLE_BUILD_TYPE="")
+  
+
   install(TARGETS sVistle EXPORT sVistle)
   install(EXPORT sVistle DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake EXPORT_LINK_INTERFACE_LIBRARIES)
 

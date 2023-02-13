@@ -103,7 +103,7 @@ namespace sensei
 
             auto getDataFunc = std::bind(&VistleAnalysisAdaptor::PrivateData::getData, this, std::placeholders::_1);
             bool pause = m_mode == "interactive,paused";
-            m_vistleAdaptor = std::make_unique<sVistle::Adapter>(pause, m_comm, std::move(vistleMeta), sVistle::ObjectRetriever{getDataFunc}, VISTLE_ROOT, m_options);
+            m_vistleAdaptor.reset(new sVistle::Adapter(pause, m_comm, std::move(vistleMeta), sVistle::ObjectRetriever{getDataFunc}, VISTLE_ROOT, VISTLE_BUILD_TYPE, m_options));
 
             m_initialized = true;
             return 0;
@@ -443,7 +443,7 @@ namespace sensei
         delete m_internals;
     }
 
-    bool sensei::VistleAnalysisAdaptor::Execute(sensei::DataAdaptor *DataAdaptor, sensei::DataAdaptor **out)
+    bool sensei::VistleAnalysisAdaptor::Execute(sensei::DataAdaptor *DataAdaptor, sensei::DataAdaptor **)
     {
         return m_internals->Execute(DataAdaptor, Comm);
     }
