@@ -71,7 +71,7 @@ namespace sensei
 
         bool chacheMetaData(DataAdaptor *data);
         sVistle::MetaData generateVistleMetaData();
-        bool getMesh(const std::string &meshName, const MeshMetadataPtr meta, VtkAndVistleMesh &mesh);
+        bool getMesh(const std::string &meshName, const MeshMetadataPtr meta, VtkAndVistleMesh &mesh, bool &cached);
         bool getVariable(sVistle::ObjectRetriever::PortAssignedObjectList &output, const std::string &varName, const std::string &meshNAme, const VtkAndVistleMesh &mesh, const MeshMetadataPtr meshMeta);
         size_t getBlockIndex(svtkCompositeDataIterator *iter, svtkCompositeDataSet *mesh);
         VtkAndVistleMesh getMeshFromSim(const std::string &name, const MeshMetadataPtr &meshMeta);
@@ -221,12 +221,16 @@ namespace sensei
             }
             MeshMetadataPtr meshMeta = mdit->second;
             VtkAndVistleMesh mesh;
-            if (!getMesh(meshName, meshMeta, mesh))
+            bool cached = false;
+            if (!getMesh(meshName, meshMeta, mesh, cached))
                 continue;
 
-            for (const auto &subMesh : mesh.vistleMeshes)
+            if(!cached) // cached grids are alredy sent to vistle
             {
-                outputData.push_back(sVistle::ObjectRetriever::PortAssignedObject{meshName, subMesh});
+                for (const auto &subMesh : mesh.vistleMeshes)
+                {
+                    outputData.push_back(sVistle::ObjectRetriever::PortAssignedObject{meshName, subMesh});
+                }
             }
 
             for (const auto &varName : meshIter)
@@ -317,16 +321,18 @@ namespace sensei
         return vtkAndVistleMesh;
     }
 
-    bool VistleAnalysisAdaptor::PrivateData::getMesh(const std::string &meshName, const MeshMetadataPtr meta, VtkAndVistleMesh &mesh)
+    bool VistleAnalysisAdaptor::PrivateData::getMesh(const std::string &meshName, const MeshMetadataPtr meta, VtkAndVistleMesh &mesh, bool &cached)
     {
         auto cachedMeshPair = m_cachedMeshes.find(meshName);
         if (cachedMeshPair != m_cachedMeshes.end())
         {
             mesh = cachedMeshPair->second;
+            cached = true;
         }
         else
         {
             mesh = getMeshFromSim(meshName, meta);
+            cached = false;
         }
         if (!mesh)
         {
