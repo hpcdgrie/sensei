@@ -345,14 +345,16 @@ namespace sensei
     bool VistleAnalysisAdaptor::PrivateData::getVariable(std::vector<sVistle::ObjectRetriever::PortAssignedObject> &output, const std::string &varName, const std::string &meshName, const VtkAndVistleMesh &mesh, const MeshMetadataPtr meshMeta)
     {
         auto centeringPosIt = std::find(meshMeta->ArrayName.begin(), meshMeta->ArrayName.end(), varName);
-        if (centeringPosIt == meshMeta->ArrayName.end())
+        svtkIdType centering = -1;
+        for (size_t i = 0; i < meshMeta->ArrayName.size(); i++)
         {
-            SENSEI_ERROR("Failed to get metadata for array \"" << varName << "\"")
-            return false;
+            if(meshMeta->ArrayName[i] == varName)
+            {
+                centering = meshMeta->ArrayCentering[i];
+                break;
+            }
         }
-        size_t centeringPos = centeringPosIt - meshMeta->ArrayName.begin();
-        auto centering = meshMeta->ArrayCentering[centeringPos];
-
+        
         svtkCompositeDataIterator *dataSetIter = mesh.vtkMesh->NewIterator();
 
         // this rank has no local data
