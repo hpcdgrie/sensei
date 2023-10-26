@@ -53,7 +53,7 @@ namespace sensei
         std::string m_options;
         std::string m_tracefile;
         int m_frequency = 1;
-        std::unique_ptr<sVistle::Adapter> m_vistleAdaptor = nullptr;
+        std::unique_ptr<sVistle::Adapter> m_vistleAdaptor;
         MPI_Comm m_comm;
         DataAdaptor *m_simulationAdaptor = nullptr;
         bool m_initialized = false;
@@ -370,10 +370,11 @@ namespace sensei
             if (this->m_simulationAdaptor->AddArray(mesh.vtkMesh.GetPointer(), meshName, centering, varName))
             {
                 if(this->m_simulationAdaptor->AddArray(dataSetIter->GetCurrentDataObject(), meshName, centering, varName))
-                SENSEI_ERROR("Failed to add " << SVTKUtils::GetAttributesName(centering)
-                                                << " data array \"" << varName << "\"")
-                dataSetIter->Delete();
-                return false;
+                {
+                    SENSEI_ERROR("Failed to add " << SVTKUtils::GetAttributesName(centering) << " data array \"" << varName << "\"")
+                    dataSetIter->Delete();
+                    return false;
+                }
             }
         }
 
