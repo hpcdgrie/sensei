@@ -21,7 +21,7 @@ namespace sensei
 
 /// @brief Analysis adaptor for Vistle https://github.com/vistle/vistle
 
-class VistleAnalysisAdaptor : public AnalysisAdaptor
+class SENSEI_EXPORT VistleAnalysisAdaptor : public AnalysisAdaptor
 {
 public:
   static VistleAnalysisAdaptor* New();
