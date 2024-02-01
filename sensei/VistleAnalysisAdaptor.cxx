@@ -344,7 +344,6 @@ namespace sensei
 
     bool VistleAnalysisAdaptor::PrivateData::getVariable(std::vector<sVistle::ObjectRetriever::PortAssignedObject> &output, const std::string &varName, const std::string &meshName, const VtkAndVistleMesh &mesh, const MeshMetadataPtr meshMeta)
     {
-        auto centeringPosIt = std::find(meshMeta->ArrayName.begin(), meshMeta->ArrayName.end(), varName);
         svtkIdType centering = -1;
         for (size_t i = 0; i < meshMeta->ArrayName.size(); i++)
         {
@@ -396,7 +395,8 @@ namespace sensei
                 continue;
             }
             auto array = SVTKUtils::VTKObjectFactory::New(sarray);
-            auto vistleArray = vistle::vtk::vtkData2Vistle(array, mesh.vistleMeshes[index]);
+            std::string diagnostics;
+            auto vistleArray = vistle::vtk::vtkData2Vistle(array, mesh.vistleMeshes[index], diagnostics);
             array->Delete();
             if (!vistleArray)
             {
