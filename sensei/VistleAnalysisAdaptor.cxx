@@ -120,14 +120,14 @@ namespace sensei
         }
         // Keep a pointer to the data adaptor so the callbacks can access it.
         m_simulationAdaptor = DataAdaptor;
-        return m_vistleAdaptor->Execute(DataAdaptor->GetDataTimeStep());
+        return m_vistleAdaptor->execute(DataAdaptor->GetDataTimeStep());
     }
 
     int sensei::VistleAnalysisAdaptor::PrivateData::Finalize()
     {
         if (m_vistleAdaptor)
         {
-            return !m_vistleAdaptor->Finalize();
+            return !m_vistleAdaptor->finalize();
         }
         return false;
     }
@@ -183,7 +183,7 @@ namespace sensei
     sVistle::MetaData sensei::VistleAnalysisAdaptor::PrivateData::generateVistleMetaData()
     {
         sVistle::MetaData metaData;
-        for (const auto meshMeta : m_senseiMetaData)
+        for (const auto &meshMeta : m_senseiMetaData)
         {
             sVistle::MetaMesh vistleMeshMeta(meshMeta.first);
             for (auto var : meshMeta.second->ArrayName)
